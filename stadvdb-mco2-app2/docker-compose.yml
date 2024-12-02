@@ -1,0 +1,39 @@
+services:
+  mysql-slave:
+    image: mysql:5.7
+    container_name: node1-central
+    depends_on:
+      - mysql-master-1
+      - mysql-master-2
+    command: --server-id=1 --log-bin=mysql-bin --binlog-format=row --master-info-repository=table --relay-log-info-repository=table
+    environment:
+      MYSQL_ROOT_PASSWORD: n3t_@DM1N! #change into your own
+      MYSQL_DATABASE: justgames
+      MYSQL_USER: replication_user
+      MYSQL_PASSWORD: n3t_@DM1N! #change into your own
+    ports:
+      - "3306:3306"
+
+  mysql-master-1:
+    image: mysql:5.7
+    container_name: node2-update
+    command: --server-id=2 --log-bin=mysql-bin --binlog-format=row
+    environment:
+      MYSQL_ROOT_PASSWORD: n3t_@DM1N! #change into your own
+      MYSQL_DATABASE: justgames
+      MYSQL_USER: replication_user
+      MYSQL_PASSWORD: n3t_@DM1N! #change into your own
+    ports:
+      - "3307:3306"
+
+  mysql-master-2:
+    image: mysql:5.7
+    container_name: node3-update
+    command: --server-id=3 --log-bin=mysql-bin --binlog-format=row
+    environment:
+      MYSQL_ROOT_PASSWORD: n3t_@DM1N! #change into your own
+      MYSQL_DATABASE: justgames
+      MYSQL_USER: replication_user
+      MYSQL_PASSWORD: n3t_@DM1N! #change into your own
+    ports:
+      - "3308:3306"
