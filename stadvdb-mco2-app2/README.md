@@ -12,6 +12,7 @@ This project was bootstrapped with [Create React App](https://github.com/faceboo
 > npm install axios
 > npm install -D tailwindcss postcss autoprefixer
 > npm install -D tailwind-scrollbar 
+> npm install react-router-dom
 
 
 ## Available Scripts
