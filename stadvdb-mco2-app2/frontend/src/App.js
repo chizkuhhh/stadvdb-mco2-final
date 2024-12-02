@@ -34,13 +34,13 @@ const App = () => {
     
         return (
             <div className="overflow-x-auto mt-6">
-                <table className="min-w-full border-collapse border border-gray-200 rounded-lg">
+                <table className="min-w-full border-collapse border border-gray-300">
                     <thead>
                         <tr>
                             {headers.map((header, index) => (
                                 <th
                                     key={index}
-                                    className="border border-gray-300 px-4 py-2 bg-gray-100 text-gray-800 font-semibold text-left"
+                                    className="border border-gray-300 px-2 py-1 bg-gray-100 text-gray-800 font-medium text-left text-sm"
                                 >
                                     {header}
                                 </th>
@@ -56,9 +56,11 @@ const App = () => {
                                 {headers.map((header, colIndex) => (
                                     <td
                                         key={colIndex}
-                                        className="border border-gray-300 px-4 py-2 text-gray-700 whitespace-normal break-words"
+                                        className="border border-gray-300 px-2 py-1 text-gray-700 text-sm max-w-[150px] overflow-hidden overflow-ellipsis whitespace-nowrap"
                                     >
-                                        {row[header]}
+                                        <div className="max-h-20 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300">
+                                            {row[header]}
+                                        </div>
                                     </td>
                                 ))}
                             </tr>
@@ -69,7 +71,6 @@ const App = () => {
         );
     };
     
-
     return (
         <div className="max-w-4xl mx-auto p-6 bg-white shadow-md rounded-lg mt-10">
             <h1 className="text-2xl font-bold mb-6 text-center text-gray-800">
