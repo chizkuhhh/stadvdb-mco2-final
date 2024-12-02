@@ -2,6 +2,18 @@
 
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
 
+## Install Dependencies
+
+1. Backend
+> pip install flask flask-cors mysql-connector-python pytest
+
+2. Frontend
+> npx create-react-app frontend
+> npm install axios
+> npm install -D tailwindcss postcss autoprefixer
+> npm install -D tailwind-scrollbar 
+
+
 ## Available Scripts
 
 In the project directory, you can run:
