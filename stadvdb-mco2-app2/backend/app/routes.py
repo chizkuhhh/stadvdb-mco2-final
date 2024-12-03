@@ -31,7 +31,6 @@ def simulate_transactions():
         "errors": errors
     })
 
-
 def process_transaction(t):
     node = t['node']
     query = t['query']
@@ -136,3 +135,40 @@ def get_combined_records():
         return jsonify({"records": records, "total_records": total_records})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+@app.route('/simulate_crash_recovery', methods=['POST'])
+def simulate_crash_recovery():
+    data = request.json
+    simulation_case = data['simulationCase']
+    transactions = data['transactions']
+
+    try:
+        results = []
+        for transaction in transactions:
+            node = transaction['node']
+            query = transaction['query']
+            isolation_level = transaction['isolation']
+
+            # Simulate failure cases
+            if simulation_case == 'case1' and node == 'node1':
+                raise Exception("Central node (Node 1) is down!")
+            elif simulation_case == 'case2' and node in ['node2', 'node3']:
+                raise Exception(f"Node {node} is down!")
+            elif simulation_case == 'case3' and node != 'node1':
+                raise Exception("Replication to central node failed!")
+            elif simulation_case == 'case4' and node == 'node1':
+                raise Exception("Replication to Node 2 or 3 failed!")
+
+            # Execute the transaction if no failure
+            connection = get_db_connection(node)
+            cursor = connection.cursor(dictionary=True)
+            cursor.execute(f"SET TRANSACTION ISOLATION LEVEL {isolation_level}")
+            cursor.execute(query)
+            result = cursor.fetchall() if query.strip().upper().startswith("SELECT") else None
+            connection.commit()
+            results.append({"transaction_id": transaction['id'], "result": result})
+
+        return jsonify({"status": "success", "results": results})
+
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
