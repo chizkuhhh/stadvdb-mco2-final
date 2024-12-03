@@ -42,3 +42,59 @@ def simulate_transaction():
             cursor.close()
         if connection:
             connection.close()
+
+@app.route('/get_combined_records', methods=['GET'])
+def get_combined_records():
+    page = int(request.args.get('page', 1))
+    game_id = request.args.get('game_id', '')
+
+    # Pagination settings
+    items_per_page = 10
+    offset = (page - 1) * items_per_page
+
+    # Search clause for game_id
+    search_clause = f"WHERE game_id = {game_id}" if game_id else ""
+
+    # Query to get total records
+    total_records_query = f"""
+        SELECT COUNT(*) AS total_records
+        FROM (
+            SELECT * FROM games_frag1
+            {search_clause}
+            UNION ALL
+            SELECT * FROM games_frag2
+            {search_clause}
+        ) AS combined_records;
+    """
+
+    # Query to get paginated records
+    paginated_query = f"""
+        SELECT * 
+        FROM (
+            SELECT * FROM games_frag1
+            {search_clause}
+            UNION ALL
+            SELECT * FROM games_frag2
+            {search_clause}
+        ) AS combined_records
+        LIMIT {items_per_page} OFFSET {offset};
+    """
+
+    try:
+        connection = get_db_connection("node1")
+        cursor = connection.cursor(dictionary=True)
+
+        # Execute total records query
+        cursor.execute(total_records_query)
+        total_records = cursor.fetchone()["total_records"]
+
+        # Execute paginated query
+        cursor.execute(paginated_query)
+        records = cursor.fetchall()
+
+        cursor.close()
+        connection.close()
+
+        return jsonify({"records": records, "total_records": total_records})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500

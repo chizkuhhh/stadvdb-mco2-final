@@ -14,3 +14,18 @@ def get_db_connection(node):
         password=db_config[node]["password"],
         database=db_config[node]["database"]
     )
+
+def execute_query(node, query):
+    connection = get_db_connection(node)
+    cursor = connection.cursor(dictionary=True)  # `dictionary=True` to get results as dictionaries
+    try:
+        cursor.execute(query)
+        results = cursor.fetchall()
+        return results
+    except Exception as e:
+        print(f"Error executing query: {e}")
+        raise e
+    finally:
+        cursor.close()
+        connection.close()
+

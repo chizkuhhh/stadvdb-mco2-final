@@ -10,6 +10,14 @@ const Sidebar = () => {
                     <ul className="space-y-4">
                         <li>
                             <Link
+                                to="/tables"
+                                className="text-gray-300 hover:text-white hover:bg-gray-700 block px-4 py-2 rounded"
+                            >
+                                Tables
+                            </Link>
+                        </li>
+                        <li>
+                            <Link
                                 to="/concurrency-control"
                                 className="text-gray-300 hover:text-white hover:bg-gray-700 block px-4 py-2 rounded"
                             >
