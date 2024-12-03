@@ -1,47 +1,36 @@
 from flask import jsonify, request
 from app import app  # Import the app object
 from app.db_config import get_db_connection
+from concurrent.futures import ThreadPoolExecutor
 
 @app.route('/simulate', methods=['POST'])
-def simulate_transaction():
+def simulate_transactions():
     data = request.json
-    node = data['node']
-    queries = data['queries']
-    isolation_level = data.get('isolation_level', 'READ COMMITTED')
+    transactions = data.get('transactions', [])
 
-    connection = None
-    cursor = None
+    results = []
+    errors = []
 
-    try:
-        # Attempt to connect to the database
-        connection = get_db_connection(node)
-        cursor = connection.cursor(dictionary=True)  # Use dictionary cursor
+    # Create a ThreadPoolExecutor for concurrent execution
+    with ThreadPoolExecutor() as executor:
+        futures = []
+        for t in transactions:
+            futures.append(executor.submit(process_transaction, t))  # Submit each transaction for processing
 
-        # Set the isolation level and start the transaction
-        cursor.execute(f"SET TRANSACTION ISOLATION LEVEL {isolation_level};")
-        cursor.execute("START TRANSACTION;")
+        for future in futures:
+            result = future.result()  # Wait for each future to complete
+            if 'error' in result:
+                errors.append(result)
+            else:
+                results.append(result)
 
-        results = []
-        for query in queries:
-            cursor.execute(query)
-            if query.strip().upper().startswith("SELECT"):
-                results.append(cursor.fetchall())
+    # Combine results and errors in the response
+    return jsonify({
+        "status": "success" if not errors else "partial_success",
+        "results": results,
+        "errors": errors
+    })
 
-        connection.commit()
-        return jsonify({"status": "success", "results": results})
-
-    except Exception as e:
-        # Rollback transaction only if connection exists
-        if connection:
-            connection.rollback()
-        return jsonify({"status": "error", "message": str(e)}), 500
-
-    finally:
-        # Safely close cursor and connection if they were initialized
-        if cursor:
-            cursor.close()
-        if connection:
-            connection.close()
 
 def process_transaction(t):
     node = t['node']
