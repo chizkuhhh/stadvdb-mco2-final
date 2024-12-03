@@ -43,6 +43,55 @@ def simulate_transaction():
         if connection:
             connection.close()
 
+def process_transaction(t):
+    node = t['node']
+    query = t['query']
+    isolation_level = t.get('isolation', 'READ COMMITTED')
+
+    connection = None
+    cursor = None
+
+    try:
+        # Connect to the database for this transaction
+        connection = get_db_connection(node)
+        cursor = connection.cursor(dictionary=True)
+
+        # Set the isolation level and start the transaction
+        cursor.execute(f"SET TRANSACTION ISOLATION LEVEL {isolation_level};")
+        cursor.execute("START TRANSACTION;")
+
+        # Execute the query
+        cursor.execute(query)
+        result = None
+        if query.strip().upper().startswith("SELECT"):
+            result = cursor.fetchall()
+
+        connection.commit()
+
+        return {
+            "transaction_id": t['id'],
+            "node": node,
+            "query": query,
+            "result": result
+        }
+
+    except Exception as e:
+        # Rollback transaction on error
+        if connection:
+            connection.rollback()
+        return {
+            "transaction_id": t['id'],
+            "node": node,
+            "query": query,
+            "error": str(e)
+        }
+
+    finally:
+        if cursor:
+            cursor.close()
+        if connection:
+            connection.close()
+
 @app.route('/get_combined_records', methods=['GET'])
 def get_combined_records():
     page = int(request.args.get('page', 1))
