@@ -58,10 +58,6 @@ const Tables = () => {
 
     return (
         <div className="max-w-6xl mx-auto p-6 bg-white text-gray-800 shadow-md rounded-lg">
-            <h1 className="text-2xl font-bold mb-6 text-center text-gray-900">
-                Combined Records (Node 1 Central)
-            </h1>
-
             {/* Search Field */}
             <div className="flex items-center mb-4">
                 <input
