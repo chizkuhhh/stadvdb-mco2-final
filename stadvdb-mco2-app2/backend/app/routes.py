@@ -1,10 +1,9 @@
 from flask import jsonify, request
-from app import app  # Import the app object
+from app import app  
 from app.db_config import get_db_connection
 from concurrent.futures import ProcessPoolExecutor, as_completed
 import multiprocessing
 
-# Ensure Flask can run in a process-safe environment
 multiprocessing.set_start_method('spawn', force=True)
 
 @app.route('/simulate', methods=['POST'])
@@ -15,22 +14,22 @@ def simulate_transactions():
     results = []
     errors = []
 
-    # Create a ProcessPoolExecutor for parallel execution of transactions
+    # for parallel execution of transactions
     with ProcessPoolExecutor() as executor:
         futures = {}
         for t in transactions:
-            # Submit each transaction for processing in separate processes
+            # submit each transaction for processing in separate processes
             futures[executor.submit(concurrency_transaction, t)] = t
 
         for future in as_completed(futures):
-            result = future.result()  # Wait for each future to complete
+            result = future.result()  # wait for each future to complete
             transaction = futures[future]
             if 'error' in result:
                 errors.append(result)
             else:
                 results.append(result)
 
-    # Combine results and errors in the response
+    # combine results and errors in the response
     return jsonify({
         "status": "success" if not errors else "partial_success",
         "results": results,
@@ -49,15 +48,12 @@ def concurrency_transaction(t):
     result = None
 
     try:
-        # Connect to the database for this transaction within the process
         connection = get_db_connection(node)
         cursor = connection.cursor(dictionary=True)
 
-        # Set the isolation level and start the transaction
         cursor.execute(f"SET TRANSACTION ISOLATION LEVEL {isolation_level};")
         cursor.execute("START TRANSACTION;")
 
-        # Execute the query
         cursor.execute(query)
         if query.strip().upper().startswith("SELECT"):
             result = cursor.fetchall()
@@ -78,7 +74,6 @@ def concurrency_transaction(t):
         }
 
     except Exception as e:
-        # Rollback transaction on error
         if connection:
             connection.rollback()
         return {
@@ -103,15 +98,12 @@ def process_transaction(t):
     cursor = None
 
     try:
-        # Connect to the database for this transaction
         connection = get_db_connection(node)
         cursor = connection.cursor(dictionary=True)
 
-        # Set the isolation level and start the transaction
         cursor.execute(f"SET TRANSACTION ISOLATION LEVEL {isolation_level};")
         cursor.execute("START TRANSACTION;")
-
-        # Execute the query
+        
         cursor.execute(query)
         result = None
         if query.strip().upper().startswith("SELECT"):
@@ -127,7 +119,6 @@ def process_transaction(t):
         }
 
     except Exception as e:
-        # Rollback transaction on error
         if connection:
             connection.rollback()
         return {
@@ -148,14 +139,11 @@ def get_combined_records():
     page = int(request.args.get('page', 1))
     game_id = request.args.get('game_id', '')
 
-    # Pagination settings
     items_per_page = 10
     offset = (page - 1) * items_per_page
 
-    # Search clause for game_id
     search_clause = f"WHERE game_id = {game_id}" if game_id else ""
 
-    # Query to get total records
     total_records_query = f"""
         SELECT COUNT(*) AS total_records
         FROM (
@@ -167,7 +155,6 @@ def get_combined_records():
         ) AS combined_records;
     """
 
-    # Query to get paginated records
     paginated_query = f"""
         SELECT * 
         FROM (
@@ -184,11 +171,9 @@ def get_combined_records():
         connection = get_db_connection("node1")
         cursor = connection.cursor(dictionary=True)
 
-        # Execute total records query
         cursor.execute(total_records_query)
         total_records = cursor.fetchone()["total_records"]
 
-        # Execute paginated query
         cursor.execute(paginated_query)
         records = cursor.fetchall()
 
@@ -212,7 +197,7 @@ def simulate_crash_recovery():
     results = []
     errors = []
 
-    # Simulate failure cases
+    # simulate failure cases
     for t in transactions:
         query = t['query']
         transaction_id = t['id']
@@ -312,15 +297,13 @@ def process_transaction_on_node(t, node):
     cursor = None
 
     try:
-        # Connect to the appropriate node (2 or 3)
+        # connect to the appropriate node (2 or 3)
         connection = get_db_connection(node)
         cursor = connection.cursor(dictionary=True)
 
-        # Set the isolation level and start the transaction
         cursor.execute(f"SET TRANSACTION ISOLATION LEVEL {isolation_level};")
         cursor.execute("START TRANSACTION;")
 
-        # Execute the query
         cursor.execute(query)
         result = None
         if query.strip().upper().startswith("SELECT"):
@@ -328,7 +311,6 @@ def process_transaction_on_node(t, node):
 
         connection.commit()
 
-        # Simulate crash and recovery message if node is down (you can add additional failure handling here)
         return {
             "transaction_id": t['id'],
             "node": node,
@@ -338,7 +320,6 @@ def process_transaction_on_node(t, node):
         }
 
     except Exception as e:
-        # Rollback transaction on error
         if connection:
             connection.rollback()
         return {
@@ -360,11 +341,11 @@ def retry_stashed_transactions():
     retry_errors = []
 
     for node, transactions in stashed_transactions.items():
-        for t in transactions[:]:  # Iterate over a copy of the list
+        for t in transactions[:]:  
             try:
                 result = process_transaction(t)
                 retry_results.append(result)
-                transactions.remove(t)  # Remove from stashed transactions after success
+                transactions.remove(t) 
             except Exception as e:
                 retry_errors.append({"transaction_id": t['id'], "error": str(e)})
 
