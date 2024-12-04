@@ -141,15 +141,21 @@ def simulate_crash_recovery():
     data = request.json
     simulation_case = data['simulationCase']
     transactions = data.get('transactions', [])
+    node_status = data.get('nodeStatus', {})
+
+    global stashed_transactions
+    stashed_transactions = {'node2': [], 'node3': []}
 
     results = []
     errors = []
 
     # Simulate failure cases
-    if simulation_case == 'case1':
-        for t in transactions:
-            query = t['query']
+    for t in transactions:
+        query = t['query']
+        transaction_id = t['id']
 
+        # if central node is down and target node is central node
+        if simulation_case == 'case1' and t['node'] == 'node1':
             # Check if the query references 'games_frag1' or 'games_frag2'
             if 'games_frag1' in query:
                 node = 'node2'  # Execute on node 2
@@ -172,19 +178,62 @@ def simulate_crash_recovery():
                     "error": str(e)
                 })
 
-        # Return the results and errors
-        return jsonify({
-            "status": "success" if not errors else "partial_success",
-            "results": results,
-            "errors": errors,
-        })
+        # if either node 2 or node 3 is down
+        elif simulation_case == 'case2':
+            target_node = t['node']
+
+            # if node 2 is the target and it's down
+            if target_node == 'node2' and not node_status.get('node2', True):
+
+                # if it's a read, then just read from central node
+                if query.strip().upper().startswith("SELECT"):
+                    try:
+                        result = process_transaction_on_node(t, "node1")  # Central node
+                        results.append(result)
+                    except Exception as e:
+                        errors.append({"transaction_id": transaction_id, "error": str(e)})
+                
+                # if it's a write, then perform it on central node just for viewing purposes
+                # stash the transaction, then retry later once the node is turned on again
+                else:
+                    try:
+                        result = process_transaction_on_node(t, "node1")  # Central node
+                        results.append(result)
+                        stashed_transactions["node2"].append(t)  # Stash the transaction
+                    except Exception as e:
+                        errors.append({"transaction_id": transaction_id, "error": str(e)})
+
+            # if node 3 is the target and it's down
+            elif target_node == 'node3' and not node_status.get('node3', True):
+
+                # if it's a read, then just read from central node
+                if query.strip().upper().startswith("SELECT"):
     
-    elif simulation_case == 'case2':
-        pass
-    elif simulation_case == 'case3':
-        pass
-    elif simulation_case == 'case4':
-        pass
+                    try:
+                        result = process_transaction_on_node(t, "node1")  # Central node
+                        results.append(result)
+                    except Exception as e:
+                        errors.append({"transaction_id": transaction_id, "error": str(e)})
+
+                # if it's a write, then perform it on central node just for viewing purposes
+                # stash the transaction, then retry later once the node is turned on again
+                else:
+                    try:
+                        result = process_transaction_on_node(t, "node1")  # Central node
+                        results.append(result)
+                        stashed_transactions["node3"].append(t)  # Stash the transaction
+                    except Exception as e:
+                        errors.append({"transaction_id": transaction_id, "error": str(e)})
+
+        elif simulation_case == 'case4':
+            pass
+
+    # Return the results and errors
+    return jsonify({
+        "status": "success" if not errors else "partial_success",
+        "results": results,
+        "errors": errors,
+    })
 
 def process_transaction_on_node(t, node):
     query = t['query']
@@ -216,7 +265,7 @@ def process_transaction_on_node(t, node):
             "node": node,
             "query": query,
             "result": result,
-            "message": f"Central node is down. Query was run on {node}."
+            "message": f"Query was run on {node}."
         }
 
     except Exception as e:
@@ -235,3 +284,23 @@ def process_transaction_on_node(t, node):
             cursor.close()
         if connection:
             connection.close()
+
+@app.route('/retry_stashed_transactions', methods=['POST'])
+def retry_stashed_transactions():
+    retry_results = []
+    retry_errors = []
+
+    for node, transactions in stashed_transactions.items():
+        for t in transactions[:]:  # Iterate over a copy of the list
+            try:
+                result = process_transaction(t)
+                retry_results.append(result)
+                transactions.remove(t)  # Remove from stashed transactions after success
+            except Exception as e:
+                retry_errors.append({"transaction_id": t['id'], "error": str(e)})
+
+    return jsonify({
+        "status": "success" if not retry_errors else "partial_success",
+        "retry_results": retry_results,
+        "retry_errors": retry_errors,
+    })

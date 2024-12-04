@@ -10,26 +10,62 @@ const CrashRecovery = () => {
     const [nodeStatus, setNodeStatus] = useState({ node2: true, node3: true }); // Tracks node availability
 
     // Function to handle the toggle of Node 2 or Node 3
-    const toggleNode = (node) => {
+    const toggleNode = async (node) => {
         setNodeStatus((prevStatus) => {
             // Only toggle if the other node is on
             if (node === "node2") {
                 if (prevStatus.node3) {
-                    return {
+                    const newNodeStatus = {
                         ...prevStatus,
                         node2: !prevStatus.node2, // Toggle Node 2
                     };
+                    if (newNodeStatus.node2) {
+                        // Node 2 is being turned on, trigger retry
+                        retryStashedTransactions("node2", newNodeStatus);
+                    }
+                    return newNodeStatus;
                 }
             } else if (node === "node3") {
                 if (prevStatus.node2) {
-                    return {
+                    const newNodeStatus = {
                         ...prevStatus,
                         node3: !prevStatus.node3, // Toggle Node 3
                     };
+                    if (newNodeStatus.node3) {
+                        // Node 3 is being turned on, trigger retry
+                        retryStashedTransactions("node3", newNodeStatus);
+                    }
+                    return newNodeStatus;
                 }
             }
             return prevStatus; // No changes if one node is off
         });
+    };
+    // function for retrying the stashed transactions (recovery)
+    const retryStashedTransactions = async (node, nodeStatus) => {
+        try {
+            const response = await fetch("http://localhost:5000/retry_stashed_transactions", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ node, nodeStatus }),
+            });
+    
+            const result = await response.json();
+            console.log(`Retry Results for ${node}:`, result);
+    
+            if (result.status === "success") {
+                setStatusMessage(`Stashed transactions retried successfully on ${node}!`);
+            } else if (result.retry_errors && result.retry_errors.length > 0) {
+                setStatusMessage(`Partial Success: ${result.retry_errors.length} error(s) occurred during retry.`);
+            } else {
+                setStatusMessage(`Retry completed with unknown issues on ${node}.`);
+            }
+    
+            // Optionally update simulation results here if needed
+        } catch (error) {
+            console.error(`Error retrying stashed transactions on ${node}:`, error);
+            setStatusMessage(`Error: Failed to retry stashed transactions on ${node} (${error.message})`);
+        }
     };
 
     const handleAddTransaction = () => {
@@ -52,12 +88,21 @@ const CrashRecovery = () => {
     const handleSimulate = async () => {
         setStatusMessage("Simulating...");
         try {
+            // Prepare the data to be sent to the backend
+            const requestData = {
+                simulationCase,
+                transactions,
+                nodeStatus,  // Add nodeStatus here
+            };
+    
+            // Send the request to the backend
             const response = await fetch("http://localhost:5000/simulate_crash_recovery", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ simulationCase, transactions }),
+                body: JSON.stringify(requestData),  // Include the data in the request body
             });
     
+            // Handle the response from the backend
             const result = await response.json();
             console.log("Simulation Results:", result);
     
@@ -72,7 +117,7 @@ const CrashRecovery = () => {
         } catch (error) {
             setStatusMessage(`Error: ${error.message}`);
         }
-    };    
+    };        
 
     const renderResultTable = (resultData) => {
         if (Array.isArray(resultData) && resultData.length > 0) {
