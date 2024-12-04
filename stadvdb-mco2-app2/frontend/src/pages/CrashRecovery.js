@@ -7,6 +7,30 @@ const CrashRecovery = () => {
     const [simulationCase, setSimulationCase] = useState("case1");
     const [simulationResults, setSimulationResults] = useState([]);
     const [statusMessage, setStatusMessage] = useState("");
+    const [nodeStatus, setNodeStatus] = useState({ node2: true, node3: true }); // Tracks node availability
+
+    // Function to handle the toggle of Node 2 or Node 3
+    const toggleNode = (node) => {
+        setNodeStatus((prevStatus) => {
+            // Only toggle if the other node is on
+            if (node === "node2") {
+                if (prevStatus.node3) {
+                    return {
+                        ...prevStatus,
+                        node2: !prevStatus.node2, // Toggle Node 2
+                    };
+                }
+            } else if (node === "node3") {
+                if (prevStatus.node2) {
+                    return {
+                        ...prevStatus,
+                        node3: !prevStatus.node3, // Toggle Node 3
+                    };
+                }
+            }
+            return prevStatus; // No changes if one node is off
+        });
+    };
 
     const handleAddTransaction = () => {
         setTransactions((prev) => [
@@ -109,6 +133,24 @@ const CrashRecovery = () => {
                     <option value="case4">Case 4: Failure Writing to Node 2/3</option>
                 </select>
             </div>
+
+            {/* Buttons to toggle Node 2 or Node 3 */}
+            {simulationCase === "case2" && (
+                <div className="flex space-x-4 mb-3">
+                    <button
+                        onClick={() => toggleNode("node2")}
+                        className={`text-white font-medium px-4 py-2 rounded-md ${nodeStatus.node2 ? "bg-green-500" : "bg-red-500"}`}
+                    >
+                        {nodeStatus.node2 ? "Turn Node 2 Off" : "Turn Node 2 On"}
+                    </button>
+                    <button
+                        onClick={() => toggleNode("node3")}
+                        className={`text-white font-medium px-4 py-2 rounded-md ${nodeStatus.node3 ? "bg-green-500" : "bg-red-500"}`}
+                    >
+                        {nodeStatus.node3 ? "Turn Node 3 Off" : "Turn Node 3 On"}
+                    </button>
+                </div>
+            )}
 
             {/* Transactions Table */}
             <table className="min-w-full border-collapse border border-gray-300">
