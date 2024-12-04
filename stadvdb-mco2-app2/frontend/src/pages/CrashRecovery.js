@@ -7,20 +7,20 @@ const CrashRecovery = () => {
     const [simulationCase, setSimulationCase] = useState("case1");
     const [simulationResults, setSimulationResults] = useState([]);
     const [statusMessage, setStatusMessage] = useState("");
-    const [nodeStatus, setNodeStatus] = useState({ node2: true, node3: true }); // Tracks node availability
+    const [nodeStatus, setNodeStatus] = useState({ node2: true, node3: true }); 
 
-    // Function to handle the toggle of Node 2 or Node 3
+    // toggle Node 2 or Node 3
     const toggleNode = async (node) => {
         setNodeStatus((prevStatus) => {
-            // Only toggle if the other node is on
+            // only toggle if the other node is on
             if (node === "node2") {
                 if (prevStatus.node3) {
                     const newNodeStatus = {
                         ...prevStatus,
-                        node2: !prevStatus.node2, // Toggle Node 2
+                        node2: !prevStatus.node2,
                     };
                     if (newNodeStatus.node2) {
-                        // Node 2 is being turned on, trigger retry
+                        // trigger retry when turned on
                         retryStashedTransactions("node2", newNodeStatus);
                     }
                     return newNodeStatus;
@@ -29,16 +29,16 @@ const CrashRecovery = () => {
                 if (prevStatus.node2) {
                     const newNodeStatus = {
                         ...prevStatus,
-                        node3: !prevStatus.node3, // Toggle Node 3
+                        node3: !prevStatus.node3,
                     };
                     if (newNodeStatus.node3) {
-                        // Node 3 is being turned on, trigger retry
+                        // trigger retry when turned on
                         retryStashedTransactions("node3", newNodeStatus);
                     }
                     return newNodeStatus;
                 }
             }
-            return prevStatus; // No changes if one node is off
+            return prevStatus; 
         });
     };
     // function for retrying the stashed transactions (recovery)
@@ -60,8 +60,7 @@ const CrashRecovery = () => {
             } else {
                 setStatusMessage(`Retry completed with unknown issues on ${node}.`);
             }
-    
-            // Optionally update simulation results here if needed
+
         } catch (error) {
             console.error(`Error retrying stashed transactions on ${node}:`, error);
             setStatusMessage(`Error: Failed to retry stashed transactions on ${node} (${error.message})`);
@@ -88,21 +87,18 @@ const CrashRecovery = () => {
     const handleSimulate = async () => {
         setStatusMessage("Simulating...");
         try {
-            // Prepare the data to be sent to the backend
             const requestData = {
                 simulationCase,
                 transactions,
-                nodeStatus,  // Add nodeStatus here
+                nodeStatus, 
             };
     
-            // Send the request to the backend
             const response = await fetch("http://localhost:5000/simulate_crash_recovery", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(requestData),  // Include the data in the request body
+                body: JSON.stringify(requestData),  
             });
-    
-            // Handle the response from the backend
+
             const result = await response.json();
             console.log("Simulation Results:", result);
     
