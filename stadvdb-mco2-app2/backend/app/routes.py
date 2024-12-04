@@ -1,7 +1,11 @@
 from flask import jsonify, request
 from app import app  # Import the app object
 from app.db_config import get_db_connection
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ProcessPoolExecutor, as_completed
+import multiprocessing
+
+# Ensure Flask can run in a process-safe environment
+multiprocessing.set_start_method('spawn', force=True)
 
 @app.route('/simulate', methods=['POST'])
 def simulate_transactions():
@@ -11,14 +15,16 @@ def simulate_transactions():
     results = []
     errors = []
 
-    # Create a ThreadPoolExecutor for concurrent execution
-    with ThreadPoolExecutor() as executor:
-        futures = []
+    # Create a ProcessPoolExecutor for parallel execution of transactions
+    with ProcessPoolExecutor() as executor:
+        futures = {}
         for t in transactions:
-            futures.append(executor.submit(process_transaction, t))  # Submit each transaction for processing
+            # Submit each transaction for processing in separate processes
+            futures[executor.submit(concurrency_transaction, t)] = t
 
-        for future in futures:
+        for future in as_completed(futures):
             result = future.result()  # Wait for each future to complete
+            transaction = futures[future]
             if 'error' in result:
                 errors.append(result)
             else:
@@ -30,6 +36,63 @@ def simulate_transactions():
         "results": results,
         "errors": errors
     })
+
+def concurrency_transaction(t):
+    node = t['node']
+    query = t['query']
+    isolation_level = t.get('isolation', 'READ COMMITTED')
+    status = t.get('status', 'COMMIT')
+    delay = t.get('delay', 0)
+
+    connection = None
+    cursor = None
+    result = None
+
+    try:
+        # Connect to the database for this transaction within the process
+        connection = get_db_connection(node)
+        cursor = connection.cursor(dictionary=True)
+
+        # Set the isolation level and start the transaction
+        cursor.execute(f"SET TRANSACTION ISOLATION LEVEL {isolation_level};")
+        cursor.execute("START TRANSACTION;")
+
+        # Execute the query
+        cursor.execute(query)
+        if query.strip().upper().startswith("SELECT"):
+            result = cursor.fetchall()
+
+        if delay != '0':
+            cursor.execute(f"DO SLEEP({delay});")
+
+        if status == 'COMMIT':
+            connection.commit()
+        else:
+            connection.rollback()
+
+        return {
+            "transaction_id": t['id'],
+            "node": node,
+            "query": query,
+            "result": result
+        }
+
+    except Exception as e:
+        # Rollback transaction on error
+        if connection:
+            connection.rollback()
+        return {
+            "transaction_id": t['id'],
+            "node": node,
+            "query": query,
+            "error": str(e)
+        }
+
+    finally:
+        if cursor:
+            cursor.close()
+        if connection:
+            connection.close()
 
 def process_transaction(t):
     node = t['node']

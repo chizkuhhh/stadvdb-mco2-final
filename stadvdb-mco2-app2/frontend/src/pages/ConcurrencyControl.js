@@ -2,14 +2,14 @@ import React, { useState } from "react";
 
 const ConcurrencyControl = () => {
     const [transactions, setTransactions] = useState([
-        {id: 1, node: 'node1', query: '', isolation: 'READ COMMITTED'},
+        {id: 1, node: 'node1', query: '', isolation: 'READ COMMITTED', status: 'COMMIT', delay: 0},
     ]);
     const [simulationResults, setSimulationResults] = useState([]);
 
     const handleAddTransaction = () => {
         setTransactions((prev) => [
             ...prev,
-            {id: prev.length + 1, node: 'node1', query:'', isolation: 'READ COMMITTED'},
+            {id: prev.length + 1, node: 'node1', query:'', isolation: 'READ COMMITTED', status: 'COMMIT', delay: 0},
         ]);
     };
 
@@ -18,8 +18,8 @@ const ConcurrencyControl = () => {
     };
 
     const handleTransactionChange = (id, field, value) => {
-        setTransactions((prev) => 
-            prev.map((t) => (t.id === id ? { ...t, [field]: value} : t))
+        setTransactions((prev) =>
+            prev.map((t) => (t.id === id ? { ...t, [field]: value } : t))
         );
     };
 
@@ -30,7 +30,7 @@ const ConcurrencyControl = () => {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ transactions }),
             });
-        
+
             const result = await response.json();
             console.log("Simulation Results:", result);
 
@@ -42,14 +42,13 @@ const ConcurrencyControl = () => {
         } catch (error) {
             console.error("Error during simulation:", error);
         }
-    }
+    };
 
     const renderResultTable = (resultData) => {
-        // Render the result as a nested table
         if (Array.isArray(resultData) && resultData.length > 0) {
             const columns = Object.keys(resultData[0]);
             return (
-                <div className="overflow-x-auto mt-2"> {/* Add overflow-x-auto for horizontal scrolling */}
+                <div className="overflow-x-auto mt-2">
                     <table className="min-w-full border-collapse border border-gray-300">
                         <thead>
                             <tr>
@@ -75,7 +74,6 @@ const ConcurrencyControl = () => {
         }
         return <p>No results</p>;
     };
-    
 
     return (
         <div className="max-w-4xl mx-auto p-6 bg-white shadow-md rounded-lg mt-10">
@@ -83,65 +81,100 @@ const ConcurrencyControl = () => {
                 Transaction Simulation
             </h1>
 
+            {/* First Table: ID, Node, Query */}
             <table className="min-w-full border-collapse border border-gray-300">
-            <thead>
-                <tr>
-                <th className="border border-gray-300 px-2 py-1 bg-gray-100 text-gray-800 font-medium text-left text-sm">ID</th>
-                <th className="border border-gray-300 px-2 py-1 bg-gray-100 text-gray-800 font-medium text-left text-sm">Node</th>
-                <th className="border border-gray-300 px-2 py-1 bg-gray-100 text-gray-800 font-medium text-left text-sm">Query</th>
-                <th className="border border-gray-300 px-2 py-1 bg-gray-100 text-gray-800 font-medium text-left text-sm">Isolation Level</th>
-                <th className="border border-gray-300 px-2 py-1 bg-gray-100 text-gray-800 font-medium text-left text-sm">Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                {transactions.map((t) => (
-                <tr key={t.id}>
-                    <td className="border border-gray-300 px-2 py-1 text-gray-700 text-sm max-w-[150px] overflow-hidden overflow-ellipsis whitespace-nowrap">{t.id}</td>
-                    <td className="border border-gray-300 px-2 py-1 text-gray-700 text-sm max-w-[150px] overflow-hidden overflow-ellipsis whitespace-nowrap">
-                    <select
-                        value={t.node}
-                        onChange={(e) =>
-                        handleTransactionChange(t.id, "node", e.target.value)
-                        }
-                    >
-                        <option value="node1">Node 1 (Central)</option>
-                        <option value="node2">Node 2</option>
-                        <option value="node3">Node 3</option>
-                    </select>
-                    </td>
-                    <td className="border border-gray-300 px-2 py-1 text-gray-700 text-sm max-w-[150px] overflow-hidden overflow-ellipsis whitespace-nowrap">
-                    <input
-                        type="text"
-                        value={t.query}
-                        onChange={(e) =>
-                        handleTransactionChange(t.id, "query", e.target.value)
-                        }
-                    />
-                    </td>
-                    <td className="border border-gray-300 px-2 py-1 text-gray-700 text-sm max-w-[150px] overflow-hidden overflow-ellipsis whitespace-nowrap">
-                    <select
-                        value={t.isolation}
-                        onChange={(e) =>
-                        handleTransactionChange(t.id, "isolation", e.target.value)
-                        }
-                    >
-                        <option>READ UNCOMMITTED</option>
-                        <option>READ COMMITTED</option>
-                        <option>REPEATABLE READ</option>
-                        <option>SERIALIZABLE</option>
-                    </select>
-                    </td>
-                    <td className="border border-gray-300 px-2 py-1 text-gray-700 text-sm text-center">
-                        <button
-                            onClick={() => handleRemoveTransaction(t.id)}
-                            className="bg-red-500 text-white font-medium px-4 py-2 rounded-md hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-400"
-                        >
-                            Remove
-                        </button>
-                    </td>
-                </tr>
-                ))}
-            </tbody>
+                <thead>
+                    <tr>
+                        <th className="border border-gray-300 px-2 py-1 bg-gray-100 text-gray-800 font-medium text-left text-sm">Transaction ID</th>
+                        <th className="border border-gray-300 px-2 py-1 bg-gray-100 text-gray-800 font-medium text-left text-sm">Node</th>
+                        <th className="border border-gray-300 px-2 py-1 bg-gray-100 text-gray-800 font-medium text-left text-sm">Query</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {transactions.map((t) => (
+                        <tr key={t.id}>
+                            <td className="border border-gray-300 px-2 py-1 text-gray-700 text-sm">{t.id}</td>
+                            <td className="border border-gray-300 px-2 py-1 text-gray-700 text-sm">
+                                <select
+                                    value={t.node}
+                                    onChange={(e) => handleTransactionChange(t.id, "node", e.target.value)}
+                                    className="text-sm p-1"
+                                >
+                                    <option value="node1">Node 1 (Central)</option>
+                                    <option value="node2">Node 2</option>
+                                    <option value="node3">Node 3</option>
+                                </select>
+                            </td>
+                            <td className="border border-gray-300 px-2 py-1 text-gray-700 text-sm">
+                                <input
+                                    type="text"
+                                    value={t.query}
+                                    onChange={(e) => handleTransactionChange(t.id, "query", e.target.value)}
+                                    className="w-full text-sm p-1"
+                                />
+                            </td>
+                        </tr>
+                    ))}
+                </tbody>
+            </table>
+
+            {/* Second Table: ID, Isolation Level, Delay, Status, Actions */}
+            <table className="min-w-full border-collapse border border-gray-300 mt-4">
+                <thead>
+                    <tr>
+                        <th className="border border-gray-300 px-2 py-1 bg-gray-100 text-gray-800 font-medium text-left text-sm">Transaction ID</th>
+                        <th className="border border-gray-300 px-2 py-1 bg-gray-100 text-gray-800 font-medium text-left text-sm">Isolation Level</th>
+                        <th className="border border-gray-300 px-2 py-1 bg-gray-100 text-gray-800 font-medium text-left text-sm">Delay (s)</th>
+                        <th className="border border-gray-300 px-2 py-1 bg-gray-100 text-gray-800 font-medium text-left text-sm">Status</th>
+                        <th className="border border-gray-300 px-2 py-1 bg-gray-100 text-gray-800 font-medium text-left text-sm">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {transactions.map((t) => (
+                        <tr key={t.id}>
+                            <td className="border border-gray-300 px-2 py-1 text-gray-700 text-sm">{t.id}</td>
+                            <td className="border border-gray-300 px-2 py-1 text-gray-700 text-sm">
+                                <select
+                                    value={t.isolation}
+                                    onChange={(e) => handleTransactionChange(t.id, "isolation", e.target.value)}
+                                    className="text-sm p-1"
+                                >
+                                    <option>READ UNCOMMITTED</option>
+                                    <option>READ COMMITTED</option>
+                                    <option>REPEATABLE READ</option>
+                                    <option>SERIALIZABLE</option>
+                                </select>
+                            </td>
+                            <td className="border border-gray-300 px-2 py-1 text-gray-700 text-sm">
+                                <input
+                                    type="number"
+                                    min="0"
+                                    value={t.delay}
+                                    onChange={(e) => handleTransactionChange(t.id, "delay", e.target.value)}
+                                    className="w-full text-sm p-1"
+                                />
+                            </td>
+                            <td className="border border-gray-300 px-2 py-1 text-gray-700 text-sm text-center">
+                                <select
+                                    value={t.status}
+                                    onChange={(e) => handleTransactionChange(t.id, "status", e.target.value)}
+                                    className="text-sm p-1"
+                                >
+                                    <option value="COMMIT">Commit</option>
+                                    <option value="ROLLBACK">Rollback</option>
+                                </select>
+                            </td>
+                            <td className="border border-gray-300 px-2 py-1 text-gray-700 text-sm text-center">
+                                <button
+                                    onClick={() => handleRemoveTransaction(t.id)}
+                                    className="bg-red-500 text-white font-medium px-4 py-2 rounded-md hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-400"
+                                >
+                                    Remove
+                                </button>
+                            </td>
+                        </tr>
+                    ))}
+                </tbody>
             </table>
 
             <div className="flex justify-center space-x-4 mt-4">
@@ -172,7 +205,6 @@ const ConcurrencyControl = () => {
                                 <div className="mt-2">
                                     <p><strong>Node:</strong> {result.node}</p>
                                     <p><strong>Query:</strong> {result.query}</p>
-                                    {/* Render the result as a nested table */}
                                     {renderResultTable(result.result)}
                                 </div>
                             </li>
@@ -182,6 +214,6 @@ const ConcurrencyControl = () => {
             )}
         </div>
     );
-}
+};
 
 export default ConcurrencyControl;
