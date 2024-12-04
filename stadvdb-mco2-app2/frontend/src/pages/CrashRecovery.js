@@ -33,18 +33,22 @@ const CrashRecovery = () => {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ simulationCase, transactions }),
             });
-
+    
             const result = await response.json();
+            console.log("Simulation Results:", result);
+    
             if (result.status === "success") {
                 setSimulationResults(result.results);
                 setStatusMessage("Simulation completed successfully!");
+            } else if (result.errors && result.errors.length > 0) {
+                setStatusMessage(`Partial Success: ${result.errors.length} error(s) occurred.`);
             } else {
-                setStatusMessage(`Error: ${result.message}`);
+                setStatusMessage("Error: Unknown issue with simulation.");
             }
         } catch (error) {
             setStatusMessage(`Error: ${error.message}`);
         }
-    };
+    };    
 
     const renderResultTable = (resultData) => {
         if (Array.isArray(resultData) && resultData.length > 0) {
@@ -197,16 +201,33 @@ const CrashRecovery = () => {
                 </button>
             </div>
 
-            {/* Simulation Results */}
-            <div className="mt-10">
-                <h2 className="text-xl font-bold mb-4">Simulation Results</h2>
-                {simulationResults.map((result, index) => (
-                    <div key={index} className="mb-6">
-                        <h3 className="font-semibold">Transaction {index + 1}:</h3>
-                        {renderResultTable(result)}
-                    </div>
-                ))}
-            </div>
+            {/* Simulation Results Section */}
+            {simulationResults.length > 0 && (
+                <div className="mt-10">
+                    <h2 className="text-xl font-bold mb-4">Simulation Results</h2>
+                    <ol className="space-y-4">
+                        {simulationResults.map((result, index) => (
+                            <li key={result.transaction_id}>
+                                <h3 className="font-semibold text-lg">
+                                    Transaction {index + 1} (ID: {result.transaction_id})
+                                </h3>
+                                <div className="mt-2">
+                                    <p><strong>Node:</strong> {result.node}</p>
+                                    <p><strong>Query:</strong> {result.query}</p>
+                                    {/* Render the result message */}
+                                    {result.message && (
+                                        <p>
+                                            <strong>Message:</strong> {result.message}
+                                        </p>
+                                    )}
+                                    {/* Render the result as a nested table */}
+                                    {renderResultTable(result.result)}
+                                </div>
+                            </li>
+                        ))}
+                    </ol>
+                </div>
+            )}
 
             {/* Status Message */}
             {statusMessage && (
