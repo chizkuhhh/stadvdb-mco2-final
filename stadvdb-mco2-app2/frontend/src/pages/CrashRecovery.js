@@ -172,10 +172,8 @@ const CrashRecovery = () => {
                     onChange={(e) => setSimulationCase(e.target.value)}
                     className="px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
-                    <option value="case1">Case 1: Central Node Failure</option>
-                    <option value="case2">Case 2: Node 2/3 Failure</option>
-                    <option value="case3">Case 3: Failure Writing to Central Node</option>
-                    <option value="case4">Case 4: Failure Writing to Node 2/3</option>
+                    <option value="case1">Central Node Failure (Case 1 & 3)</option>
+                    <option value="case2">Node 2/3 Failure (Case 2 & 4)</option>
                 </select>
             </div>
 

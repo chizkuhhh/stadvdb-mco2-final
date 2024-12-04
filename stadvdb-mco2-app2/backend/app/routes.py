@@ -224,9 +224,15 @@ def simulate_crash_recovery():
                         stashed_transactions["node3"].append(t)  # Stash the transaction
                     except Exception as e:
                         errors.append({"transaction_id": transaction_id, "error": str(e)})
+            else:
+                print('else case in case2/4')
+                result = process_transaction(t)
+                results.append(result)
 
-        elif simulation_case == 'case4':
-            pass
+        else:
+            print('going into last else case')
+            result = process_transaction(t)
+            results.append(result)
 
     # Return the results and errors
     return jsonify({
