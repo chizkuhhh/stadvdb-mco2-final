@@ -1,9 +1,9 @@
 import mysql.connector
 
 db_config = {
-    "node1": {"host": "localhost", "port": 3306, "user": "replication_user", "password": "n3t_@DM1N!", "database": "justgames"}, # change pw into ur own
-    "node2": {"host": "localhost", "port": 3307, "user": "replication_user", "password": "n3t_@DM1N!", "database": "justgames"}, # change pw into ur own
-    "node3": {"host": "localhost", "port": 3308, "user": "replication_user", "password": "n3t_@DM1N!", "database": "justgames"}  # change pw into ur own
+    "node1": {"host": "localhost", "port": 3306, "user": "replication_user", "password": "Yalowi7(", "database": "justgames"}, # change pw into ur own
+    "node2": {"host": "localhost", "port": 3307, "user": "replication_user", "password": "Yalowi7(", "database": "justgames"}, # change pw into ur own
+    "node3": {"host": "localhost", "port": 3308, "user": "replication_user", "password": "Yalowi7(", "database": "justgames"}  # change pw into ur own
 }
 
 def get_db_connection(node):
